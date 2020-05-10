@@ -1,0 +1,3 @@
+fake_label_1	text_line_1
+fake_label_1	text_line_2
+fake_label_2	text_line_3

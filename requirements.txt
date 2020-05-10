@@ -1,0 +1,5 @@
+tensorflow-gpu == 1.15.2
+requests == 2.23.0
+numpy == 1.18.2
+matplotlib == 3.2.1
+hnswlib == 0.3.4

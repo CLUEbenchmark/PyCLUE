@@ -101,8 +101,7 @@ class Processor(object):
                 if label in self.labels or set_type == 'predict':
                     examples.append(
                         InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-            except Exception as e:
-                print(e)
+            except Exception:
                 print('### {}-example error {}: {}'.format(set_type, i, origin_line))
         return examples
 
