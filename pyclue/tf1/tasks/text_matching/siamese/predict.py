@@ -110,7 +110,7 @@ class Predictor(object):
         self.index_nms.init_index(max_elements=self.num_cache, ef_construction=100, M=100)
         # element insertion (can be called several times)
         self.index_nms.add_items(data=self.cache_embeddings, ids=range(self.num_cache))
-        self.index_nms.save_index(os.path.join(self.pb_model_file, 'cache.index'))
+        # self.index_nms.save_index(os.path.join(self.model_file, 'cache.index'))
         # controlling the recall by setting ef:
         self.index_nms.set_ef(ef=self.ef)  # ef should always be > k (knn)
 
@@ -168,18 +168,16 @@ class Predictor(object):
 
     def get_embedding(self, texts):
         if isinstance(texts, str):
-            new_texts = [self.labels[0], texts, '']
-        elif isinstance(texts, list):
-            new_texts = []
-            for item in texts:
-                if len(item) == 1 or len(item) == 2:
-                    new_texts.append([self.labels[0], item[-1], ''])
-                else:
-                    raise ValueError('texts item should contain 1 or 2 elements')
-            assert all([len(item) == 3 for item in new_texts]), \
-                'texts item should contain 3 elements'
-        else:
-            raise ValueError('texts format not support')
+            texts = [texts]
+
+        new_texts = []
+        for item in texts:
+            if len(item) == 1 or len(item) == 2:
+                new_texts.append([self.labels[0], item[-1], ''])
+            else:
+                raise ValueError('texts item should contain 1 or 2 elements')
+        assert all([len(item) == 3 for item in new_texts]), \
+            'texts item should contain 3 elements'
         features = self.processor.get_features_for_inputs(new_texts)
 
         embeddings = []
@@ -195,13 +193,14 @@ class Predictor(object):
         if inputs_ndim == 1:
             labels = [-1] * len(inputs)
             texts = inputs
+            inputs = [[item] for item in texts]
         elif inputs_ndim == 2:
             labels = [item[0] for item in inputs]
             texts = [item[1] for item in inputs]
         else:
             raise TypeError('input_file format should be `label\\ttext` or `text`')
         texts = np.array(texts)
-        embeddings = self.get_embedding(texts)
+        embeddings = self.get_embedding(inputs)
         labels = np.array(labels)
 
         return texts, embeddings, labels
@@ -209,12 +208,19 @@ class Predictor(object):
     def predict(self, texts, top_k=3, strategy=None):
         assert top_k < self.ef, 'Parameter top_k should be less than self.ef.'
 
+        if isinstance(texts, str):
+            texts = [[texts]]
+        elif isinstance(texts, list):
+            for i, text in enumerate(texts):
+                if isinstance(text, str):
+                    texts[i] = [text]
+
         embeddings = self.get_embedding(texts)
         # query dataset, k - number of closest elements (returns 2 numpy arrays)
         indexes, distances = self.index_nms.knn_query(embeddings, k=top_k)
-        similar_labels = [self.cache_labels[item] for item in indexes]
-        similar_texts = [self.cache_texts[item] for item in indexes]
-        scaled_similarities = 1 - np.squeeze(distances) / 2
+        similar_labels = [self.cache_labels[item].tolist() for item in indexes]
+        similar_texts = [self.cache_texts[item].tolist() for item in indexes]
+        scaled_similarities = 1 - distances / 2
         scaled_similarities, similar_labels, similar_texts = self._apply_top_k_strategy(
             scaled_similarities, similar_labels, similar_texts, strategy)
 
@@ -222,7 +228,7 @@ class Predictor(object):
         for i, text in enumerate(texts):
             result = {'text': text, 'rank': {}}
             for j, scaled_similarity, similar_label, similar_text \
-                    in zip(range(1, len(similar_texts[i] + 1)),
+                    in zip(range(1, len(similar_texts[i]) + 1),
                            scaled_similarities,
                            similar_labels,
                            similar_texts):
@@ -239,9 +245,9 @@ class Predictor(object):
         texts, embeddings, labels = self.get_embedding_from_file(input_file)
         # query dataset, k - number of closest elements (returns 2 numpy arrays)
         indexes, distances = self.index_nms.knn_query(embeddings, k=top_k)
-        similar_labels = [self.cache_labels[item] for item in indexes]
-        similar_texts = [self.cache_texts[item] for item in indexes]
-        scaled_similarities = 1 - np.squeeze(distances) / 2
+        similar_labels = [self.cache_labels[item].tolist() for item in indexes]
+        similar_texts = [self.cache_texts[item].tolist() for item in indexes]
+        scaled_similarities = 1 - distances / 2
         scaled_similarities, similar_labels, similar_texts = self._apply_top_k_strategy(
             scaled_similarities, similar_labels, similar_texts, strategy)
 
@@ -249,7 +255,7 @@ class Predictor(object):
         for i, text in enumerate(texts):
             result = {'text': text, 'rank': {}}
             for j, scaled_similarity, similar_label, similar_text \
-                    in zip(range(1, len(similar_texts[i] + 1)),
+                    in zip(range(1, len(similar_texts[i]) + 1),
                            scaled_similarities,
                            similar_labels,
                            similar_texts):
@@ -268,9 +274,9 @@ class Predictor(object):
         texts, embeddings, labels = self.get_embedding_from_file(input_file)
         # query dataset, k - number of closest elements (returns 2 numpy arrays)
         indexes, distances = self.index_nms.knn_query(embeddings, k=top_k)
-        similar_labels = [self.cache_labels[item] for item in indexes]
-        similar_texts = [self.cache_texts[item] for item in indexes]
-        scaled_similarities = 1 - np.squeeze(distances) / 2
+        similar_labels = [self.cache_labels[item].tolist() for item in indexes]
+        similar_texts = [self.cache_texts[item].tolist() for item in indexes]
+        scaled_similarities = 1 - distances / 2
         scaled_similarities, similar_labels, similar_texts = self._apply_top_k_strategy(
             scaled_similarities, similar_labels, similar_texts, strategy)
 

@@ -222,7 +222,8 @@ class Trainer(object):
 
         return model_fn
 
-    def train(self, num_train_epochs, warmup_proportion, learning_rate, optimizer_name, log_steps=50):
+    def train(self, num_train_epochs, warmup_proportion, learning_rate,
+              optimizer_name, log_steps=50, save_checkpoints_steps=200):
         self.num_train_epochs = num_train_epochs
         self.warmup_proportion = warmup_proportion
         self.num_train_steps = int(self.num_train_examples / self.batch_size * self.num_train_epochs)
@@ -230,6 +231,7 @@ class Trainer(object):
         self.learning_rate = learning_rate
         self.optimizer_name = optimizer_name
         self.log_steps = log_steps
+        self.save_checkpoints_steps = save_checkpoints_steps
         self._load_estimator()
         self._asynchronous_train()
         self.pb_model_file = self.save_model(checkpoint_path=self.ckpt_model_file)
@@ -435,18 +437,16 @@ class Trainer(object):
 
     def get_embedding(self, texts):
         if isinstance(texts, str):
-            new_texts = [self.labels[0], texts, '']
-        elif isinstance(texts, list):
-            new_texts = []
-            for item in texts:
-                if len(item) == 1 or len(item) == 2:
-                    new_texts.append([self.labels[0], item[-1], ''])
-                else:
-                    raise ValueError('texts item should contain 1 or 2 elements')
-            assert all([len(item) == 3 for item in new_texts]), \
-                'texts item should contain 3 elements'
-        else:
-            raise ValueError('texts format not support')
+            texts = [texts]
+
+        new_texts = []
+        for item in texts:
+            if len(item) == 1 or len(item) == 2:
+                new_texts.append([self.labels[0], item[-1], ''])
+            else:
+                raise ValueError('texts item should contain 1 or 2 elements')
+        assert all([len(item) == 3 for item in new_texts]), \
+            'texts item should contain 3 elements'
         features = self.processor.get_features_for_inputs(new_texts)
 
         result = self.estimator.predict(
@@ -463,13 +463,15 @@ class Trainer(object):
         if inputs_ndim == 1:
             labels = [-1] * len(inputs)
             texts = inputs
+            inputs = [[item] for item in texts]
         elif inputs_ndim == 2:
             labels = [item[0] for item in inputs]
             texts = [item[1] for item in inputs]
         else:
             raise TypeError('input_file format should be `label\\ttext` or `text`')
         texts = np.array(texts)
-        embeddings = self.get_embedding(texts)
+
+        embeddings = self.get_embedding(inputs)
         labels = np.array(labels)
 
         return texts, embeddings, labels
@@ -539,12 +541,19 @@ class Trainer(object):
         assert self.cache_file, \
             'The cache_file is `None`, you should specify it during `predict`.'
 
+        if isinstance(texts, str):
+            texts = [[texts]]
+        elif isinstance(texts, list):
+            for i, text in enumerate(texts):
+                if isinstance(text, str):
+                    texts[i] = [text]
+
         embeddings = self.get_embedding(texts)
         # query dataset, k - number of closest elements (returns 2 numpy arrays)
         indexes, distances = self.index_nms.knn_query(embeddings, k=top_k)
-        similar_labels = [self.cache_labels[item] for item in indexes]
-        similar_texts = [self.cache_texts[item] for item in indexes]
-        scaled_similarities = 1 - np.squeeze(distances) / 2
+        similar_labels = [self.cache_labels[item].tolist() for item in indexes]
+        similar_texts = [self.cache_texts[item].tolist() for item in indexes]
+        scaled_similarities = 1 - distances / 2
         scaled_similarities, similar_labels, similar_texts = self._apply_top_k_strategy(
             scaled_similarities, similar_labels, similar_texts, strategy)
 
@@ -552,10 +561,10 @@ class Trainer(object):
         for i, text in enumerate(texts):
             result = {'text': text, 'rank': {}}
             for j, scaled_similarity, similar_label, similar_text \
-                in zip(range(1, len(similar_texts[i] + 1)),
-                       scaled_similarities,
-                       similar_labels,
-                       similar_texts):
+                    in zip(range(1, len(similar_texts[i]) + 1),
+                           scaled_similarities,
+                           similar_labels,
+                           similar_texts):
                 result['rank'][str(j)] = {
                     'similar_text': similar_text,
                     'similar_label': similar_label,
@@ -573,9 +582,9 @@ class Trainer(object):
         texts, embeddings, labels = self.get_embedding_from_file(input_file)
         # query dataset, k - number of closest elements (returns 2 numpy arrays)
         indexes, distances = self.index_nms.knn_query(embeddings, k=top_k)
-        similar_labels = [self.cache_labels[item] for item in indexes]
-        similar_texts = [self.cache_texts[item] for item in indexes]
-        scaled_similarities = 1 - np.squeeze(distances) / 2
+        similar_labels = [self.cache_labels[item].tolist() for item in indexes]
+        similar_texts = [self.cache_texts[item].tolist() for item in indexes]
+        scaled_similarities = 1 - distances / 2
         scaled_similarities, similar_labels, similar_texts = self._apply_top_k_strategy(
             scaled_similarities, similar_labels, similar_texts, strategy)
 
@@ -583,7 +592,7 @@ class Trainer(object):
         for i, text in enumerate(texts):
             result = {'text': text, 'rank': {}}
             for j, scaled_similarity, similar_label, similar_text \
-                    in zip(range(1, len(similar_texts[i] + 1)),
+                    in zip(range(1, len(similar_texts[i]) + 1),
                            scaled_similarities,
                            similar_labels,
                            similar_texts):
@@ -606,9 +615,9 @@ class Trainer(object):
         texts, embeddings, labels = self.get_embedding_from_file(input_file)
         # query dataset, k - number of closest elements (returns 2 numpy arrays)
         indexes, distances = self.index_nms.knn_query(embeddings, k=top_k)
-        similar_labels = [self.cache_labels[item] for item in indexes]
-        similar_texts = [self.cache_texts[item] for item in indexes]
-        scaled_similarities = 1 - np.squeeze(distances) / 2
+        similar_labels = [self.cache_labels[item].tolist() for item in indexes]
+        similar_texts = [self.cache_texts[item].tolist() for item in indexes]
+        scaled_similarities = 1 - distances / 2
         scaled_similarities, similar_labels, similar_texts = self._apply_top_k_strategy(
             scaled_similarities, similar_labels, similar_texts, strategy)
 
