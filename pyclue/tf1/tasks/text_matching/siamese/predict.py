@@ -99,7 +99,7 @@ class Predictor(object):
         self.probabilities = self.signature['serving_default'].outputs['probabilities'].name
 
     def _load_cache(self):
-        self.ef = self.model_file.get('ef')
+        self.ef = self.model_config_file.get('ef')
         self.cache_texts, self.cache_embeddings, self.cache_labels = self.get_embedding_from_file(self.cache_file)
         self.num_cache, self.embedding_dim = self.cache_embeddings.shape
 
