@@ -39,7 +39,7 @@ pip install git+https://www.github.com/CLUEBenchmark/PyCLUE.git
 7. [albert_small_zh_brightmart](https://storage.googleapis.com/albert_zh/albert_small_zh_google.zip)
 8. [albert_tiny_zh_brightmart](https://storage.googleapis.com/albert_zh/albert_tiny_zh_google.zip)
 9. [roberta_zh_brightmart](https://storage.googleapis.com/chineseglue/pretrain_models/roeberta_zh_L-24_H-1024_A-16.zip)
-10. [roberta_wwm_ext_zh_brightmart]('https://storage.googleapis.com/chineseglue/pretrain_models/chinese_roberta_wwm_ext_L-12_H-768_A-12.zip)
+10. [roberta_wwm_ext_zh_brightmart](https://storage.googleapis.com/chineseglue/pretrain_models/chinese_roberta_wwm_ext_L-12_H-768_A-12.zip)
 11. [roberta_wwm_ext_large_zh_brightmart](https://storage.googleapis.com/chineseglue/pretrain_models/chinese_roberta_wwm_large_ext_L-24_H-1024_A-16.zip)
 
 **待支持**
