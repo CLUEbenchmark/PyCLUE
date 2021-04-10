@@ -42,7 +42,7 @@ setuptools.setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent'],
     install_requires=[
-        'tensorflow-gpu==1.15.2', 
+        'tensorflow-gpu==2.4.0', 
         'requests==2.23.0', 
         'numpy==1.18.2', 
         'matplotlib==3.2.1',
