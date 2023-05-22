@@ -43,7 +43,7 @@ setuptools.setup(
         'Operating System :: OS Independent'],
     install_requires=[
         'tensorflow-gpu==1.15.2', 
-        'requests==2.23.0', 
+        'requests==2.31.0', 
         'numpy==1.18.2', 
         'matplotlib==3.2.1',
         'hnswlib==0.3.4'],
